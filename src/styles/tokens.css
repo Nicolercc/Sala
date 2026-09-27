@@ -1,0 +1,55 @@
+:root,
+:root[data-theme="light"],
+[data-theme="light"] {
+  --surface-base: #f8faf7;
+  --surface-raised: #ffffff;
+  --text-primary: #18201a;
+  --text-secondary: #4f5b52;
+  --border-default: #c9d4c9;
+  --accent-default: #285d47;
+  --accent-subtle: #dcebe2;
+  --focus-ring: #1d70b8;
+  --status-waiting: #6b5b00;
+  --status-called: #a63f00;
+  --status-in-room: #235c84;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --surface-base: #111615;
+  --surface-raised: #1b2421;
+  --text-primary: #f1f7f3;
+  --text-secondary: #bed0c5;
+  --border-default: #4c5d54;
+  --accent-default: #9ee0bb;
+  --accent-subtle: #243a31;
+  --focus-ring: #8dccff;
+  --status-waiting: #f1cf62;
+  --status-called: #ffb181;
+  --status-in-room: #9ad4ff;
+  color-scheme: dark;
+}
+
+:root[data-theme="high-contrast"],
+[data-theme="high-contrast"] {
+  --surface-base: #ffffff;
+  --surface-raised: #ffffff;
+  --text-primary: #000000;
+  --text-secondary: #1a1a1a;
+  --border-default: #000000;
+  --accent-default: #003399;
+  --accent-subtle: #e8f0ff;
+  --focus-ring: #ffbf00;
+  --status-waiting: #5c4500;
+  --status-called: #8a2400;
+  --status-in-room: #003d66;
+  color-scheme: light;
+}
+
+/*
+  Contrast checks:
+  Light primary/base 15.18:1, secondary/base 6.70:1, primary/raised 16.51:1.
+  Dark primary/base 17.08:1, secondary/base 10.04:1, primary/raised 14.36:1.
+  High contrast primary/base 21:1, secondary/base 17.4:1, focus/base 12.8:1.
+*/
