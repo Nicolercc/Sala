@@ -7,3 +7,6 @@ coverage/
 tsconfig.tsbuildinfo
 .DS_Store
 .env*.local
+
+# Local Netlify folder
+.netlify
