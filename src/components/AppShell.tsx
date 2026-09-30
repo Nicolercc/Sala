@@ -8,6 +8,10 @@ function Header() {
   const pathname = usePathname();
   const { resetDemo } = usePatients();
 
+  if (pathname === "/") {
+    return null;
+  }
+
   return (
     <header className="border-b border-border-default bg-surface-raised">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
