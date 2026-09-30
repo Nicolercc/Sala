@@ -52,9 +52,9 @@ export default function CaseStudyPage() {
 
       <section className="border-y border-border-default bg-surface-raised">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 md:grid-cols-4">
-          <Metric label="Routes" value="5" />
+          <Metric label="Routes" value="6" />
           <Metric label="Public PHI fields" value="0" />
-          <Metric label="Unit tests" value="22" />
+          <Metric label="Unit tests" value="30+" />
           <Metric label="E2E checks" value="17+" />
         </div>
       </section>
