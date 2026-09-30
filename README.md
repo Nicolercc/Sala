@@ -3,7 +3,7 @@
 A front-desk check-in prototype for clinics where the visit itself is sensitive. Staff see what they need. The waiting room sees a glyph, a token, a wait range, and a status. Nothing else.
 
 - **Status:** working prototype with synthetic data. Not validated with users.
-- **Live demo:** pending deployment. No public URL has been verified yet.
+- **Live demo:** [sala-privacy-board.netlify.app](https://sala-privacy-board.netlify.app)
 - **Design file:** [Sala in Figma](https://www.figma.com/design/mTrNMj9qBNuaMK88hOovGv)
 - **Usability testing:** planned, not yet run. See [`docs/USABILITY_PLAN.md`](docs/USABILITY_PLAN.md).
 
