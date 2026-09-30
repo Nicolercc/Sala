@@ -29,7 +29,7 @@ const STYLE = `
   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]):not([data-theme="hc"]){
+  :root:not([data-theme="light"]):not([data-theme="high-contrast"]){
     --bg:#0F1413;--surface:#182120;--surface-2:#1E2826;--ink:#EEF3F2;--muted:#A6B3B0;--border:#2D3A38;--line:#5F6E6B;
     --accent:#5EC4CC;--accent-ink:#0B1A1C;--accent-soft:#163A3D;--focus:#7AA7FF;
     --error:#FF8A80;--error-soft:#3A1714;--ok:#6FD39A;--ok-soft:#123020;--warn:#FFB870;--warn-soft:#3A2A12;--neutral-soft:#26302E;--neutral-ink:#D0D8D6;color-scheme:dark;}
@@ -38,7 +38,7 @@ const STYLE = `
   --bg:#0F1413;--surface:#182120;--surface-2:#1E2826;--ink:#EEF3F2;--muted:#A6B3B0;--border:#2D3A38;--line:#5F6E6B;
   --accent:#5EC4CC;--accent-ink:#0B1A1C;--accent-soft:#163A3D;--focus:#7AA7FF;
   --error:#FF8A80;--error-soft:#3A1714;--ok:#6FD39A;--ok-soft:#123020;--warn:#FFB870;--warn-soft:#3A2A12;--neutral-soft:#26302E;--neutral-ink:#D0D8D6;color-scheme:dark;}
-:root[data-theme="hc"]{
+:root[data-theme="high-contrast"]{
   --bg:#FFFFFF;--surface:#FFFFFF;--surface-2:#FFFFFF;--ink:#000000;--muted:#1F2524;--border:#000000;--line:#000000;
   --accent:#00393E;--accent-ink:#FFFFFF;--accent-soft:#D3ECEE;--focus:#0033CC;
   --error:#8A0F07;--error-soft:#FFE6E3;--ok:#004D2C;--ok-soft:#DDF6E7;--warn:#6B2800;--warn-soft:#FFEFD1;--neutral-soft:#EDEDED;--neutral-ink:#000000;}
@@ -127,10 +127,12 @@ fieldset{border:0;padding:0;margin:0}
 .summary ul{margin:0;padding-left:18px}
 .summary a{color:var(--error);font-weight:600}
 .review{border:1px solid var(--border);border-radius:12px}
-.review div{display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.review div{padding:12px 16px;border-bottom:1px solid var(--border)}
 .review div:last-child{border-bottom:0}
 .review dt{font-size:13px;color:var(--muted)}
-.review dd{margin:0;font-weight:700;font-size:16px;word-break:break-word}
+.review dd{margin:0;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.review dd>span{min-width:0;font-weight:700;font-size:16px;word-break:break-word}
+.review dd .btn{flex-shrink:0}
 .note{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:12px 14px;font-weight:600;font-size:15px}
 .token-card{align-self:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 36px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface-2);text-align:center}
 .token-card .label{font-size:40px;font-weight:800;letter-spacing:-.01em;line-height:1.05}
@@ -156,7 +158,7 @@ table{width:100%;border-collapse:collapse;min-width:760px}
 th{font-size:12px;letter-spacing:.04em;text-align:left;color:var(--muted);font-weight:700;padding:10px 10px;background:var(--surface-2);border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:15px}
 tr:last-child td{border-bottom:0}
-tr.done td{opacity:.5}
+tr.done td{color:var(--muted)}
 tr.you td{background:var(--warn-soft)}
 tr.you td:first-child{box-shadow:inset 4px 0 0 var(--board-hl)}
 .tok{display:inline-flex;align-items:center;gap:8px;font-weight:700;white-space:nowrap}
@@ -265,18 +267,19 @@ const MARKUP = `
   <header class="top">
     <div class="brand">
       <h1>Sala</h1>
-      <p><strong>Check yourself in at the kiosk and watch what each screen is allowed to show.</strong> Use your real name if you like. It stays on this page, is never saved, and never reaches the waiting-room screen.</p>
+      <p><strong>Check yourself in at the kiosk and watch what each screen is allowed to show.</strong> Please use a made-up name and birth date: this is a demo, not a real clinic. What you type stays on this page, is never saved, and never reaches the waiting-room screen.</p>
     </div>
     <div class="controls">
       <label for="theme">Colors</label>
       <select id="theme" class="small">
-        <option value="auto">Match device</option><option value="light">Light</option><option value="dark">Dark</option><option value="hc">High contrast</option>
+        <option value="auto">Match device</option><option value="light">Light</option><option value="dark">Dark</option><option value="high-contrast">High contrast</option>
       </select>
       <button class="btn btn-secondary" id="openContract" type="button">Display contract</button>
       <button class="btn btn-ghost" id="reset" type="button">Reset demo</button>
     </div>
   </header>
 
+  <main id="main">
   <section aria-labelledby="z1">
     <div class="zone-label"><h2 id="z1">Behind the desk</h2><span>Only patients and staff see these screens.</span></div>
     <div class="private">
@@ -345,6 +348,7 @@ const MARKUP = `
       <div class="sr" aria-live="polite" id="boardLive"></div>
     </div>
   </section>
+  </main>
 
   <footer class="page-foot">
     <span>Sala is a portfolio prototype by Nicole Rodríguez. Synthetic data. Not affiliated with any EHR vendor and not a clinical system.</span>

@@ -8,7 +8,30 @@ export const surfaces = {
 } as const;
 
 export type Surface = keyof typeof surfaces;
-type SurfaceKeys<S extends Surface> = (typeof surfaces)[S][number];
+export type SurfaceKeys<S extends Surface> = (typeof surfaces)[S][number];
+
+/**
+ * The one enforcement point for every surface: copies only the keys the surface
+ * allows, deny by default. Anything else in `fields`, including fields added to a
+ * source record later, is dropped here.
+ */
+export function pickSurfaceFields<S extends Surface, F extends Partial<Record<SurfaceKeys<S>, unknown>>>(
+  surface: S,
+  fields: F
+): Pick<F, Extract<keyof F, SurfaceKeys<S>>> {
+  const allowed = surfaces[surface] as readonly SurfaceKeys<S>[];
+  return Object.fromEntries(
+    allowed.filter((key) => Object.prototype.hasOwnProperty.call(fields, key)).map((key) => [key, fields[key]])
+  ) as Pick<F, Extract<keyof F, SurfaceKeys<S>>>;
+}
+
+/** Keys that stop `payload` matching the surface exactly: extras first, then missing. */
+export function surfaceContractViolations(surface: Surface, payload: Record<string, unknown>): string[] {
+  const allowed: readonly string[] = surfaces[surface];
+  const extra = Object.keys(payload).filter((key) => !allowed.includes(key));
+  const missing = allowed.filter((key) => !(key in payload));
+  return [...extra, ...missing];
+}
 
 export type ViewFields = {
   glyph: GlyphId;
@@ -64,5 +87,5 @@ export function project<S extends Surface>(
     waitMinutes: waitMinutes(patient, now)
   };
 
-  return Object.fromEntries(surfaces[surface].map((key) => [key, derived[key]])) as View<S>;
+  return pickSurfaceFields(surface, derived) as View<S>;
 }

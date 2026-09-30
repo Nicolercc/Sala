@@ -93,7 +93,9 @@ export default function StaffPage() {
             </p>
           </div>
         ) : null}
-        <div className="panel overflow-x-auto">
+        {/* relative: the table's sr-only labels are absolutely positioned; without a
+            positioned scroll box they escape it and widen the whole page on phones. */}
+        <div className="panel relative overflow-x-auto">
           <table className="min-w-[880px] w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-border-default">

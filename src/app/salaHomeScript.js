@@ -1,32 +1,56 @@
 /* eslint-disable */
 // Untyped by design: this file owns direct DOM rendering for the home
 // prototype and is excluded from typecheck/lint (see salaHomeScript.d.ts).
+// The waiting-room board's data comes only from the typed feed below, which
+// applies the same allow-list as the rest of the app (surfaces.publicBoard).
+import { getKioskBoardFeed, projectKioskRecord } from "../feeds/kioskBoard";
+import { surfaceContractViolations } from "../policy/visibility";
+
+const SHAPES = { Triangle:"#2F6FDB", Circle:"#E07A1F", Square:"#2E9E5B", Diamond:"#7C4DCC", Star:"#D6457A", Hexagon:"#0E8A96" };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const $ = id => document.getElementById(id);
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fmtTime = d => d.toLocaleTimeString([], { hour:"numeric", minute:"2-digit" });
+
+function glyphSVG(shape, size) {
+  const c = SHAPES[shape], s = size;
+  const p = {
+    Circle:`<circle cx="50" cy="50" r="42" fill="${c}"/>`,
+    Square:`<rect x="10" y="10" width="80" height="80" rx="8" fill="${c}"/>`,
+    Triangle:`<path d="M50 8 L92 88 H8 Z" fill="${c}"/>`,
+    Diamond:`<path d="M50 6 L94 50 L50 94 L6 50 Z" fill="${c}"/>`,
+    Star:`<path d="M50 6l12.6 28.4 30.9 3.2-23.1 20.8 6.6 30.4L50 73.3 23 88.8l6.6-30.4L6.5 37.6l30.9-3.2z" fill="${c}"/>`,
+    Hexagon:`<path d="M50 6l38 22v44L50 94 12 72V28z" fill="${c}"/>`
+  }[shape];
+  return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" aria-hidden="true" focusable="false">${p}</svg>`;
+}
+
+// ---------- board ----------
+// Deliberately outside bootSalaHome: this code cannot see the arrival records.
+// It receives public board rows (glyph, tokenLabel, waitRange, status) and a
+// map of recently updated token labels, nothing else.
+function boardTile(row, updatedAt) {
+  const since = updatedAt[row.tokenLabel];
+  const isNew = since && Date.now() - since < (reduced() ? 10000 : 5000);
+  const cls = row.status.startsWith("Go to") ? "is-called" : row.status === "You're next" ? "is-next" : row.status.startsWith("Please") ? "is-desk" : "";
+  return `<div class="tile ${cls} ${isNew?"updated":""}" data-token="${esc(row.tokenLabel)}"><div class="t-top">${glyphSVG(row.glyph.charAt(0).toUpperCase()+row.glyph.slice(1), cls==="is-called"?52:40)}<span class="t-label">${esc(row.tokenLabel)}</span></div><div class="t-bot"><span class="t-status">${esc(row.status)}</span><span class="t-wait">${row.waitRange==="Now"||row.waitRange==="—"?esc(row.waitRange):"Est. "+esc(row.waitRange)}</span></div></div>`;
+}
+function renderBoard(feed, updatedAt) {
+  const called = feed.filter(row => row.status.startsWith("Go to"));
+  const rest = feed.filter(row => !row.status.startsWith("Go to"));
+  $("calledTiles").innerHTML = called.length ? called.map(row => boardTile(row, updatedAt)).join("") : `<div class="tv-empty">No one called right now.</div>`;
+  $("waitTiles").innerHTML = rest.length ? rest.map(row => boardTile(row, updatedAt)).join("") : `<div class="tv-empty">No one waiting.</div>`;
+  $("clock").textContent = fmtTime(new Date());
+}
+
 export function bootSalaHome() {
   "use strict";
   // ---------- data ----------
-  const SHAPES = { Triangle:"#2F6FDB", Circle:"#E07A1F", Square:"#2E9E5B", Diamond:"#7C4DCC", Star:"#D6457A", Hexagon:"#0E8A96" };
   const VISITS = { annual:"Annual visit", follow:"Follow-up", lab:"Lab only", other:"Something else" };
   const LANGS = { en:"English", es:"Español", other:"Another language" };
-  const BOARD_CONTRACT = ["glyph","tokenLabel","waitRange","status"];
   const IDLE_MS = 60000;
+  // updated: token label -> time of last change, used only to highlight board tiles.
   let patients = [], seq = 0, lens = false, lastWire = null, locked = false, lastActive = Date.now(), updated = {};
-
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  const $ = id => document.getElementById(id);
-  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function glyphSVG(shape, size) {
-    const c = SHAPES[shape], s = size;
-    const p = {
-      Circle:`<circle cx="50" cy="50" r="42" fill="${c}"/>`,
-      Square:`<rect x="10" y="10" width="80" height="80" rx="8" fill="${c}"/>`,
-      Triangle:`<path d="M50 8 L92 88 H8 Z" fill="${c}"/>`,
-      Diamond:`<path d="M50 6 L94 50 L50 94 L6 50 Z" fill="${c}"/>`,
-      Star:`<path d="M50 6l12.6 28.4 30.9 3.2-23.1 20.8 6.6 30.4L50 73.3 23 88.8l6.6-30.4L6.5 37.6l30.9-3.2z" fill="${c}"/>`,
-      Hexagon:`<path d="M50 6l38 22v44L50 94 12 72V28z" fill="${c}"/>`
-    }[shape];
-    return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" aria-hidden="true" focusable="false">${p}</svg>`;
-  }
 
   const shapeOf = t => t.split(" ")[0];
   function newToken() {
@@ -61,27 +85,10 @@ export function bootSalaHome() {
     lastWire = null;
   }
 
-  // ---------- projection + contract ----------
-  const bucket = m => m < 5 ? "under 5 min" : m < 10 ? "5–10 min" : m < 20 ? "10–20 min" : m < 30 ? "20–30 min" : "30+ min";
+  // ---------- public board projection ----------
+  // Every public value comes from src/feeds/kioskBoard.ts; nothing here builds board data.
+  const publicRow = p => projectKioskRecord(p, patients);
   function waitingOrder() { return patients.filter(p => p.status === "waiting").sort((a,b) => a.arrived - b.arrived); }
-  function project(p) {
-    const order = waitingOrder(), i = order.indexOf(p);
-    let status, waitRange;
-    if (p.status === "called") { status = `Go to window ${p.window}`; waitRange = "Now"; }
-    else if (p.status === "desk") { status = "Please see front desk"; waitRange = "—"; }
-    else { status = i === 0 ? "You're next" : "Waiting"; waitRange = bucket(3 + i*6); }
-    return { glyph: shapeOf(p.token).toLowerCase(), tokenLabel: p.token, waitRange, status };
-  }
-  class ContractError extends Error { constructor(keys){ super("Blocked by display contract: " + keys.join(", ")); this.keys = keys; } }
-  function publishToBoard(payload) {
-    const extra = Object.keys(payload).filter(k => !BOARD_CONTRACT.includes(k));
-    const missing = BOARD_CONTRACT.filter(k => !(k in payload));
-    if (extra.length || missing.length) throw new ContractError(extra.length ? extra : missing);
-    return Object.freeze({ ...payload });
-  }
-  function boardFeed() {
-    return patients.filter(p => p.status !== "done").map(p => ({ id:p.id, data: publishToBoard(project(p)) }));
-  }
 
   // ---------- kiosk ----------
   const T = {
@@ -116,6 +123,12 @@ export function bootSalaHome() {
     return `<div class="summary" role="alert"><b>${esc(t().errTitle(keys.length))}</b><ul>${keys.map(k=>`<li><a href="#${target[k]}" data-focus="${target[k]}">${esc(K.errors[k])}</a></li>`).join("")}</ul></div>`;
   }
   function inv(k){ return K.errors[k] ? `aria-invalid="true" aria-describedby="e-${k}"` : ""; }
+  // A <dl> row group may hold only <dt>/<dd>, so the Edit button lives inside the <dd>.
+  // The hidden label gives each button a unique name ("Edit Name", "Edit Visit").
+  // `value` is already escaped by the caller.
+  function reviewRow(label, value, step, L) {
+    return `<div><dt>${esc(label)}</dt><dd><span>${value}</span><button class="btn btn-ghost btn-sm" type="button" data-go="${step}">${esc(L.edit)}<span class="sr"> ${esc(label)}</span></button></dd></div>`;
+  }
 
   function renderKiosk(focus) {
     clearInterval(K.timer);
@@ -147,14 +160,14 @@ export function bootSalaHome() {
       const vis = L.visits.find(v=>v[0]===d.visit);
       body = `${stepBar(3)}<h4 tabindex="-1">${esc(L.s3)}</h4>
         <dl class="review">
-          <div><span><dt>${esc(L.name)}</dt><dd>${esc(d.first)} ${esc(d.last)}</dd></span><button class="btn btn-ghost btn-sm" type="button" data-go="1">${esc(L.edit)}</button></div>
-          <div><span><dt>${esc(L.dob)}</dt><dd>${esc(d.mm.padStart(2,"0"))}/${esc(d.dd.padStart(2,"0"))}/${esc(d.yy)}</dd></span><button class="btn btn-ghost btn-sm" type="button" data-go="1">${esc(L.edit)}</button></div>
-          <div><span><dt>${esc(L.visit)}</dt><dd>${esc(vis?vis[1]:"")}</dd></span><button class="btn btn-ghost btn-sm" type="button" data-go="2">${esc(L.edit)}</button></div>
-          <div><span><dt>${esc(L.noteL)}</dt><dd>${d.note?esc(d.note):esc(L.none)}</dd></span><button class="btn btn-ghost btn-sm" type="button" data-go="2">${esc(L.edit)}</button></div>
+          ${reviewRow(L.name, `${esc(d.first)} ${esc(d.last)}`, 1, L)}
+          ${reviewRow(L.dob, `${esc(d.mm.padStart(2,"0"))}/${esc(d.dd.padStart(2,"0"))}/${esc(d.yy)}`, 1, L)}
+          ${reviewRow(L.visit, esc(vis?vis[1]:""), 2, L)}
+          ${reviewRow(L.noteL, d.note?esc(d.note):esc(L.none), 2, L)}
         </dl><div class="note">${esc(L.privacy)}</div>`;
       foot = `<button class="btn btn-ghost" type="button" data-go="2">${esc(L.back)}</button><button class="btn btn-primary" type="button" id="confirm">${esc(L.confirm)}</button>`;
     } else if (K.step === 4) {
-      const p = patients.find(x=>x.id===K.issued), pr = p ? project(p) : null;
+      const p = patients.find(x=>x.id===K.issued), pr = p ? publicRow(p) : null;
       body = `<div class="field center" style="gap:14px"><h4 tabindex="-1" class="center">${esc(L.done1)}</h4>
         <div class="token-card">${glyphSVG(shapeOf(p.token),84)}<span class="label">${esc(p.token)}</span><small>${esc(L.symbol)}</small></div>
         <p class="lede center" style="max-width:34ch">${esc(L.watch(p.token))}</p>
@@ -222,7 +235,6 @@ export function bootSalaHome() {
   }
 
   // ---------- staff ----------
-  const fmtTime = d => d.toLocaleTimeString([], { hour:"numeric", minute:"2-digit" });
   const fmtDob = s => { const [y,m,d] = s.split("-"); return `${m}/${d}/${y}`; };
   const mins = d => Math.max(0, Math.round((Date.now() - d) / 60000));
   const initials = p => `${p.first[0]||""}. ${p.last[0]||""}.`.toUpperCase();
@@ -294,24 +306,8 @@ export function bootSalaHome() {
   activityEvents.forEach(e => document.addEventListener(e, activityHandler, { passive: e !== "keydown" }));
   const idleInterval = setInterval(() => { if (!locked && Date.now() - lastActive > IDLE_MS) lock(); }, 3000);
 
-  // ---------- board ----------
-  function mark(id) { updated[id] = Date.now(); const p = patients.find(x=>x.id===id); if (p && p.status !== "done") showWire(publishToBoard(project(p))); }
-  function tile(item) {
-    const d = item.data, isNew = updated[item.id] && Date.now() - updated[item.id] < (reduced() ? 10000 : 5000);
-    const cls = d.status.startsWith("Go to") ? "is-called" : d.status === "You're next" ? "is-next" : d.status.startsWith("Please") ? "is-desk" : "";
-    return `<div class="tile ${cls} ${isNew?"updated":""}" data-token="${esc(d.tokenLabel)}"><div class="t-top">${glyphSVG(d.glyph.charAt(0).toUpperCase()+d.glyph.slice(1), cls==="is-called"?52:40)}<span class="t-label">${esc(d.tokenLabel)}</span></div><div class="t-bot"><span class="t-status">${esc(d.status)}</span><span class="t-wait">${d.waitRange==="Now"||d.waitRange==="—"?esc(d.waitRange):"Est. "+esc(d.waitRange)}</span></div></div>`;
-  }
-  function renderBoard() {
-    // The board renders ONLY from the published feed. It never sees `patients`.
-    const feed = boardFeed();
-    const called = feed.filter(f => f.data.status.startsWith("Go to"));
-    const rest = feed.filter(f => !f.data.status.startsWith("Go to"));
-    const pos = f => { const p = patients.find(x=>x.id===f.id); return p ? p.arrived : 0; };
-    rest.sort((a,b) => pos(a) - pos(b));
-    $("calledTiles").innerHTML = called.length ? called.map(tile).join("") : `<div class="tv-empty">No one called right now.</div>`;
-    $("waitTiles").innerHTML = rest.length ? rest.map(tile).join("") : `<div class="tv-empty">No one waiting.</div>`;
-    $("clock").textContent = fmtTime(new Date());
-  }
+  // ---------- board updates ----------
+  function mark(id) { const p = patients.find(x=>x.id===id); if (!p) return; updated[p.token] = Date.now(); if (p.status !== "done") showWire(publicRow(p)); }
 
   // ---------- wall ----------
   function jsonHTML(obj, badKeys = []) {
@@ -330,13 +326,14 @@ export function bootSalaHome() {
   }
   const leakClickHandler = () => {
     const p = patients.find(x => x.id === K.issued) || [...patients].reverse().find(x => x.status !== "done");
-    const attempt = { ...project(p), firstName: p.first, lastName: p.last };
-    try { publishToBoard(attempt); }
-    catch (e) {
-      $("wire").innerHTML = jsonHTML(attempt, e.keys);
+    // Demo: the attempt is shown, then checked against the same contract the feed enforces.
+    const attempt = { ...publicRow(p), firstName: p.first, lastName: p.last };
+    const blocked = surfaceContractViolations("publicBoard", attempt);
+    if (blocked.length) {
+      $("wire").innerHTML = jsonHTML(attempt, blocked);
       const w = $("wall"); w.classList.remove("blocked"); void w.offsetWidth; w.classList.add("blocked");
       $("verdict").className = "verdict no";
-      $("verdict").textContent = `Blocked. ${e.keys.join(" and ")} aren't in the waiting-room contract, so the board never received them. The board is unchanged.`;
+      $("verdict").textContent = `Blocked. ${blocked.join(" and ")} aren't in the waiting-room contract, so the board never received them. The board is unchanged.`;
     }
   };
   $("leak").addEventListener("click", leakClickHandler);
@@ -345,7 +342,8 @@ export function bootSalaHome() {
   let toastT;
   function toast(msg) { const el = $("toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), 5000); }
   function say(id, msg) { const el = $(id); el.textContent = ""; setTimeout(() => { el.textContent = msg; }, 60); }
-  function renderAll() { renderStaff(); renderBoard(); }
+  // The board is handed public rows only; it never receives `patients`.
+  function renderAll() { renderStaff(); renderBoard(getKioskBoardFeed(patients), updated); }
   function applyTheme(v) { if (v === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", v); }
   const themeChangeHandler = e => applyTheme(e.target.value);
   $("theme").addEventListener("change", themeChangeHandler);
@@ -360,7 +358,7 @@ export function bootSalaHome() {
   dlg.addEventListener("click", dlgBackdropHandler);
   function initWire() {
     const p = patients.find(x => x.status === "called");
-    showWire(publishToBoard(project(p)));
+    showWire(publicRow(p));
     $("verdict").className = "verdict";
     $("verdict").textContent = "Four fields, every time: glyph, token label, wait range, status.";
   }
