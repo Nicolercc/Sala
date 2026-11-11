@@ -79,6 +79,9 @@ for (const theme of ["light", "dark", "high-contrast"] as const) {
   for (const route of routes) {
     test(`axe has zero violations on ${route} in ${theme}`, async ({ page }) => {
       await page.goto(route);
+      // Switch theme only after hydration; changing <html> earlier makes React
+      // report a server/client attribute mismatch and can leave the page mid-render.
+      await page.waitForLoadState("networkidle");
       await page.evaluate((value) => {
         document.documentElement.dataset.theme = value;
       }, theme);
@@ -232,11 +235,14 @@ test("home waiting-room board receives only public fields while staff keep the f
 
 test("an attempt to send a name to the board is blocked by the display contract", async ({ page }) => {
   await page.goto("/");
-  const board = page.getByRole("region", { name: "Waiting room" });
-  const before = await board.innerHTML();
+  // Wait for the page script to render the board before taking the snapshot,
+  // and compare the tiles only: the board clock ticks independently.
+  const tiles = page.locator("#calledTiles, #waitTiles");
+  await expect(page.locator("#waitTiles .tile").first()).toBeVisible();
+  const before = await tiles.evaluateAll((els) => els.map((el) => el.innerHTML));
   await page.getByRole("button", { name: "Try to send a name" }).click();
   await expect(page.locator("#verdict")).toContainText("Blocked. firstName and lastName");
-  expect(await board.innerHTML()).toBe(before);
+  expect(await tiles.evaluateAll((els) => els.map((el) => el.innerHTML))).toEqual(before);
 });
 
 test("root page asks for made-up details, not real ones", async ({ page }) => {
@@ -251,6 +257,9 @@ test("idle blur activates on staff and resumes", async ({ page }) => {
   await page.clock.install();
   await page.goto("/staff");
   await expect(page.getByRole("heading", { name: "Staff queue" })).toBeVisible();
+  // The heading is server-rendered; the idle timer only starts once the page has
+  // hydrated, so wait for the client bundle before moving the clock.
+  await page.waitForLoadState("networkidle");
   await page.clock.fastForward(61_000);
   await expect(page.getByRole("button", { name: "Resume" })).toBeFocused();
   await page.getByRole("button", { name: "Resume" }).click();

@@ -130,13 +130,27 @@ export function usePatients(): PatientContextValue {
   return context;
 }
 
+/**
+ * The current time, refreshed every 30 s.
+ *
+ * The first render uses the fixed seed time on both server and client, and the
+ * real clock takes over after mount. Reading `new Date()` during render made the
+ * server and the first client render disagree whenever a minute ticked over in
+ * between ("64345" vs "64346 minutes since arrival"), and React threw a
+ * hydration error and rebuilt the page.
+ */
 export function useNow(fixed?: Date): Date {
-  const [now, setNow] = useState(fixed ?? new Date());
+  const [now, setNow] = useState(fixed ?? defaultSeedNow);
 
   useEffect(() => {
     if (fixed) return undefined;
-    const id = window.setInterval(() => setNow(new Date()), 30_000);
-    return () => window.clearInterval(id);
+    const tick = () => setNow(new Date());
+    const first = window.setTimeout(tick, 0);
+    const id = window.setInterval(tick, 30_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(id);
+    };
   }, [fixed]);
 
   return now;
