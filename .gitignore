@@ -10,3 +10,6 @@ tsconfig.tsbuildinfo
 
 # Local Netlify folder
 .netlify
+
+# Written by `next dev` (Next.js 16 agent rules); not project documentation
+AGENTS.md
