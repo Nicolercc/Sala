@@ -102,7 +102,7 @@ describe("board render", () => {
 
     const board = getByTestId("board");
     const html = board.innerHTML;
-    for (const leaked of ["Zebulon", "Quixotewright", "1901", "02/03", reasonLabels.consultation.en ?? reasonLabels.consultation]) {
+    for (const leaked of ["Zebulon", "Quixotewright", "1901", "02/03", reasonLabels.consultation]) {
       expect(html, `board shows ${String(leaked)}`).not.toContain(String(leaked));
     }
     // One board row per active patient, each carrying only the public fields.
