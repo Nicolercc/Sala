@@ -11,7 +11,7 @@ All data is synthetic. No real patient information was used at any point, and th
 
 ## The idea
 
-Sala focuses on the in-clinic arrival and waiting-room display layer, where privacy exposure can still happen even when intake is handled elsewhere. One arrival record renders differently on each surface. The public board never receives names, dates of birth, visit reasons, notes, or internal IDs, because its data passes through an allow-list projection before any waiting-room code renders it. Tests fail if that changes.
+Sala focuses on the in-clinic arrival and waiting-room display layer, where privacy exposure can still happen even when intake is handled elsewhere. One arrival record renders differently on each surface. The waiting-room board's renderer never receives names, dates of birth, visit reasons, notes, or internal IDs: its data passes through an allow-list projection first, and tests fail if that changes. In this browser-only prototype that is a code boundary, not a network one (see the limits below).
 
 The core product idea is a display contract: each surface names the fields it is allowed to show, the fields it is forbidden to show, and the tests that prove the contract.
 
@@ -36,13 +36,13 @@ staff-side arrival records
 ```
 
 - **The allow-list** is `surfaces.publicBoard` in [`src/policy/visibility.ts`](src/policy/visibility.ts). `pickSurfaceFields()` in the same file is the one function that applies it. Anything not on the list is dropped, including fields added to a source record later.
-- **`/board`** renders from `getBoardFeed()` ([`src/feeds/board.ts`](src/feeds/board.ts)), which serializes `project(patient, "publicBoard", ...)`. The route does not import the patient store or `Patient` type (checked by `src/app/board/import-boundary.test.ts`).
+- **`/board`** renders from `getBoardFeed()` ([`src/feeds/board.ts`](src/feeds/board.ts)), which serializes `project(patient, "publicBoard", ...)`. `BoardFeedBridge` is the one module on the route that reads the patient store. The renderer, `BoardDisplay`, receives only the serialized feed and cannot reach the store or the `Patient` type through any import chain (checked by `src/policy/boardBoundary.test.tsx` and an ESLint `import/no-restricted-paths` rule).
 - **`/`** renders its board from `getKioskBoardFeed()` and `projectKioskRecord()` ([`src/feeds/kioskBoard.ts`](src/feeds/kioskBoard.ts)), built on the same `pickSurfaceFields()`. The board renderer in `src/app/salaHomeScript.js` sits outside the code that holds the arrival records and receives only board rows.
 - **The staff views** read full records directly; that is their job. On `/staff`, the lens shows exactly the board projection (unit-tested). On `/`, the lens replaces names with initials and hides birth date and visit.
 
 Restricted fields are removed before any waiting-room code runs, not hidden with CSS. Limits:
 
-- The home demo runs in one browser page, so this is a code-level boundary. A production version would apply the same projection on a server before data reaches a display device.
+- Both boards run in the same browser as the staff views, so this is a code-level boundary. On `/board`, the shared in-memory patient store is still loaded in the page (the route sits inside the app's `PatientProvider`), so someone with developer tools on the board device could read full records. A production version would apply the same projection on a server and send the display device only the projected feed.
 - The allow-list controls which fields cross, not what an allowed field contains. Tests check that sample names and sensitive values do not appear inside allowed fields, but only for the inputs they cover.
 - This is not a security certification.
 
@@ -60,6 +60,7 @@ Restricted fields are removed before any waiting-room code runs, not hidden with
 | PR-8 | Idle blur at 60s | E2E test with a mocked clock |
 | PR-9 | Lens output equals board output for every patient on `/staff` | Unit test |
 | PR-10 | Extra fields on a source record never reach the board | Unit tests that add SSN, MRN, phone, email, insurance, and diagnosis fields |
+| PR-11 | A newly checked-in patient appears on `/board` only through public fields; the board renderer has no import path to patient records | Render test with a sentinel patient; transitive import test; lint rule |
 
 ## Accessibility
 
