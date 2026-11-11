@@ -131,20 +131,29 @@ export function usePatients(): PatientContextValue {
 }
 
 /**
- * The current time, refreshed every 30 s.
+ * The demo's clock. The synthetic patients arrived on the seed morning, so wait
+ * times are measured on a clock that starts at that seed time when the page
+ * loads and then runs in real time. Measuring against today's date showed
+ * waits like "65,122 minutes since arrival".
+ */
+const sessionStartedAt = typeof window === "undefined" ? 0 : Date.now();
+
+export function demoNow(): Date {
+  return new Date(defaultSeedNow.getTime() + (Date.now() - sessionStartedAt));
+}
+
+/**
+ * The demo clock, refreshed every 30 s.
  *
- * The first render uses the fixed seed time on both server and client, and the
- * real clock takes over after mount. Reading `new Date()` during render made the
- * server and the first client render disagree whenever a minute ticked over in
- * between ("64345" vs "64346 minutes since arrival"), and React threw a
- * hydration error and rebuilt the page.
+ * The first render uses the seed time on both server and client so hydration
+ * matches; the running demo clock takes over right after mount.
  */
 export function useNow(fixed?: Date): Date {
   const [now, setNow] = useState(fixed ?? defaultSeedNow);
 
   useEffect(() => {
     if (fixed) return undefined;
-    const tick = () => setNow(new Date());
+    const tick = () => setNow(demoNow());
     const first = window.setTimeout(tick, 0);
     const id = window.setInterval(tick, 30_000);
     return () => {

@@ -1,4 +1,4 @@
-import type { Language } from "@/types/patient";
+import type { Language, Status } from "@/types/patient";
 
 export type WaitRange = {
   low: number;
@@ -33,4 +33,19 @@ export function getWaitRange(ahead: number): WaitRange {
       es: `Aprox. ${low} a ${high} min`
     }
   };
+}
+
+/**
+ * The wait shown for a patient in a given status. Only waiting patients get an
+ * estimate; someone already called or with staff has no wait left, and showing
+ * "About 40 to 80 min" next to "Your turn" contradicted the status beside it.
+ */
+export function getWaitRangeForStatus(status: Status, ahead: number): WaitRange {
+  if (status === "called") {
+    return { low: 0, high: 0, label: { en: "Now", es: "Ahora" } };
+  }
+  if (status === "in_room" || status === "done") {
+    return { low: 0, high: 0, label: { en: "—", es: "—" } };
+  }
+  return getWaitRange(ahead);
 }

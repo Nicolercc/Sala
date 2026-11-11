@@ -6,7 +6,7 @@ import { Glyph } from "@/components/Glyph";
 import { IdleBlur } from "@/components/IdleBlur";
 import { reasonLabels, toDateTimeLocal } from "@/lib/format";
 import { tokenLabel } from "@/lib/tokens";
-import { checkInSchema, type CheckInInput, usePatients } from "@/store/patients";
+import { checkInSchema, demoNow, type CheckInInput, usePatients } from "@/store/patients";
 import type { Patient, VisitReason } from "@/types/patient";
 
 const reasonOptions: VisitReason[] = ["annual_exam", "follow_up", "consultation", "other"];
@@ -42,7 +42,7 @@ export default function CheckInPage() {
   const [input, setInput] = useState<CheckInInput>(() => emptyInput(""));
   useEffect(() => {
     const id = window.setTimeout(() =>
-      setInput((current) => (current.arrivedAt ? current : { ...current, arrivedAt: toDateTimeLocal(new Date()) }))
+      setInput((current) => (current.arrivedAt ? current : { ...current, arrivedAt: toDateTimeLocal(demoNow()) }))
     );
     return () => window.clearTimeout(id);
   }, []);
@@ -262,7 +262,7 @@ export default function CheckInPage() {
                   className="button-secondary justify-self-start"
                   onClick={() => {
                     setConfirmation(null);
-                    setInput(emptyInput(toDateTimeLocal(new Date())));
+                    setInput(emptyInput(toDateTimeLocal(demoNow())));
                     setStep(0);
                     window.setTimeout(() => firstFieldRef.current?.focus(), 0);
                   }}

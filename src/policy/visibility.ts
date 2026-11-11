@@ -1,5 +1,5 @@
 import { tokenLabel } from "@/lib/tokens";
-import { getWaitRange, type WaitRange } from "@/lib/waitRange";
+import { getWaitRangeForStatus, type WaitRange } from "@/lib/waitRange";
 import type { GlyphId, Patient, Status, VisitReason } from "@/types/patient";
 
 export const surfaces = {
@@ -78,7 +78,7 @@ export function project<S extends Surface>(
   const derived: ViewFields = {
     glyph: patient.token.glyph,
     tokenLabel: tokenLabel(patient.token, patient.language),
-    waitRange: getWaitRange(waitingAhead(patient, allPatients)),
+    waitRange: getWaitRangeForStatus(patient.status, waitingAhead(patient, allPatients)),
     status: patient.status,
     fullName: `${patient.firstName} ${patient.lastName}`,
     dobMasked: maskDob(patient.dob),
