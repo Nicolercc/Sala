@@ -10,3 +10,12 @@ describe("wait range", () => {
     expect(getWaitRange(ahead)).toEqual({ low, high, label: { en, es } });
   });
 });
+
+describe("wait range by status", () => {
+  it("gives an estimate only to waiting patients", async () => {
+    const { getWaitRangeForStatus } = await import("@/lib/waitRange");
+    expect(getWaitRangeForStatus("waiting", 5).label.en).toBe("About 40 to 80 min");
+    expect(getWaitRangeForStatus("called", 5).label).toEqual({ en: "Now", es: "Ahora" });
+    expect(getWaitRangeForStatus("in_room", 5).label.en).toBe("—");
+  });
+});
