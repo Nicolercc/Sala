@@ -79,6 +79,9 @@ for (const theme of ["light", "dark", "high-contrast"] as const) {
   for (const route of routes) {
     test(`axe has zero violations on ${route} in ${theme}`, async ({ page }) => {
       await page.goto(route);
+      // Switch theme only after hydration; changing <html> earlier makes React
+      // report a server/client attribute mismatch and can leave the page mid-render.
+      await page.waitForLoadState("networkidle");
       await page.evaluate((value) => {
         document.documentElement.dataset.theme = value;
       }, theme);
