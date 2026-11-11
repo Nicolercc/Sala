@@ -17,9 +17,13 @@ All data is synthetic. No real patient information was used at any point, and th
 2. **Open the [waiting-room board](https://sala-privacy-board.netlify.app/board)** (ideally in a second window, as it would be on a TV). The same patient appears only as the diamond glyph and **Jade Heron**, with "Next up" and a status. No name, birth date or visit reason.
 3. **On the staff queue, turn on "See what the room sees".** Each row switches to exactly the fields the board receives, from the same projection.
 
-| Staff queue (front desk) | Waiting-room board (public) |
-| --- | --- |
-| ![Staff queue table. Maya Rivera, 50 minutes since arrival, token Jade Heron with a diamond glyph, birth date masked as two asterisks slash two asterisks slash 1978, annual exam, arrived 8:10 AM, status Waiting. Five more synthetic patients follow.](docs/images/sala-staff.jpg) | ![Public board titled Find your token, in English and Spanish. The first card shows a leaf glyph, token Jade Sparrow, wait Now, status Your turn. The second shows a diamond glyph, token Jade Heron, wait Next up, status Waiting. No names appear.](docs/images/sala-board.jpg) |
+**Staff queue (front desk):** Maya Rivera is token Jade Heron.
+
+![Staff queue table. Maya Rivera, 50 minutes since arrival, token Jade Heron with a diamond glyph, birth date masked as two asterisks slash two asterisks slash 1978, annual exam, arrived 8:10 AM, status Waiting. Five more synthetic patients follow.](docs/images/sala-staff.jpg)
+
+**Waiting-room board (public):** the same token, and nothing else about her.
+
+![Public board titled Find your token, in English and Spanish. The first card shows a leaf glyph, token Jade Sparrow, wait Now, status Your turn. The second shows a diamond glyph, token Jade Heron, wait Next up, status Waiting. No names appear.](docs/images/sala-board.jpg)
 
 The demo runs on a synthetic clock that starts on the seed morning, so the waits shown are minutes, not months.
 
