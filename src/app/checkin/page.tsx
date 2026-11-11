@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ZodError } from "zod";
 import { Glyph } from "@/components/Glyph";
 import { IdleBlur } from "@/components/IdleBlur";
@@ -23,20 +23,29 @@ const stepFields: Array<Array<keyof CheckInInput>> = [
 
 type Errors = Partial<Record<keyof CheckInInput, string>>;
 
-function emptyInput(): CheckInInput {
+function emptyInput(arrivedAt: string): CheckInInput {
   return {
     firstName: "",
     lastName: "",
     dob: "",
     reason: "annual_exam",
     language: "en",
-    arrivedAt: toDateTimeLocal(new Date())
+    arrivedAt
   };
 }
 
 export default function CheckInPage() {
   const { checkIn } = usePatients();
-  const [input, setInput] = useState<CheckInInput>(() => emptyInput());
+  // The arrival time starts empty and is filled in after mount. Reading the clock
+  // during render baked the build time into the static HTML and made the server
+  // and client renders disagree.
+  const [input, setInput] = useState<CheckInInput>(() => emptyInput(""));
+  useEffect(() => {
+    const id = window.setTimeout(() =>
+      setInput((current) => (current.arrivedAt ? current : { ...current, arrivedAt: toDateTimeLocal(new Date()) }))
+    );
+    return () => window.clearTimeout(id);
+  }, []);
   const [errors, setErrors] = useState<Errors>({});
   const [confirmation, setConfirmation] = useState<Patient | null>(null);
   const [step, setStep] = useState(0);
@@ -253,7 +262,7 @@ export default function CheckInPage() {
                   className="button-secondary justify-self-start"
                   onClick={() => {
                     setConfirmation(null);
-                    setInput(emptyInput());
+                    setInput(emptyInput(toDateTimeLocal(new Date())));
                     setStep(0);
                     window.setTimeout(() => firstFieldRef.current?.focus(), 0);
                   }}
