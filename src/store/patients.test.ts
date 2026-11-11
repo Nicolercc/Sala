@@ -59,3 +59,18 @@ describe("check-in schema", () => {
     expect(checkInSchema.safeParse({ ...validInput, arrivedAt: "" }).success).toBe(false);
   });
 });
+
+describe("demo clock", () => {
+  it("starts at the seed time, so seeded waits stay within the seed morning", async () => {
+    const { demoNow } = await import("@/store/patients");
+    const { createSeedPatients, defaultSeedNow } = await import("@/lib/seed");
+    const now = demoNow();
+    expect(now.getTime() - defaultSeedNow.getTime()).toBeGreaterThanOrEqual(0);
+    expect(now.getTime() - defaultSeedNow.getTime()).toBeLessThan(60 * 60_000);
+    for (const patient of createSeedPatients(defaultSeedNow)) {
+      const minutes = (now.getTime() - new Date(patient.arrivedAt).getTime()) / 60_000;
+      expect(minutes).toBeGreaterThanOrEqual(0);
+      expect(minutes).toBeLessThan(120);
+    }
+  });
+});
