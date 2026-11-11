@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Untyped by design: this file owns direct DOM rendering for the home
 // prototype and is excluded from typecheck/lint (see salaHomeScript.d.ts).
 // The waiting-room board's data comes only from the typed feed below, which

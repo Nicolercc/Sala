@@ -41,14 +41,11 @@ export default function CheckInPage() {
   const [confirmation, setConfirmation] = useState<Patient | null>(null);
   const [step, setStep] = useState(0);
   const firstFieldRef = useRef<HTMLInputElement>(null);
-  const fieldRefs = {
-    firstName: firstFieldRef,
-    lastName: useRef<HTMLInputElement>(null),
-    dob: useRef<HTMLInputElement>(null),
-    reason: useRef<HTMLSelectElement>(null),
-    language: useRef<HTMLSelectElement>(null),
-    arrivedAt: useRef<HTMLInputElement>(null)
-  };
+  const lastNameRef = useRef<HTMLInputElement>(null);
+  const dobRef = useRef<HTMLInputElement>(null);
+  const reasonRef = useRef<HTMLSelectElement>(null);
+  const languageRef = useRef<HTMLSelectElement>(null);
+  const arrivedAtRef = useRef<HTMLInputElement>(null);
 
   function update<Key extends keyof CheckInInput>(key: Key, value: CheckInInput[Key]) {
     setInput((current) => ({ ...current, [key]: value }));
@@ -56,7 +53,16 @@ export default function CheckInPage() {
 
   function moveFocusToFirstError(nextErrors: Errors) {
     const firstKey = Object.keys(nextErrors)[0] as keyof CheckInInput | undefined;
-    if (firstKey) fieldRefs[firstKey].current?.focus();
+    if (!firstKey) return;
+    const fields: Record<keyof CheckInInput, HTMLInputElement | HTMLSelectElement | null> = {
+      firstName: firstFieldRef.current,
+      lastName: lastNameRef.current,
+      dob: dobRef.current,
+      reason: reasonRef.current,
+      language: languageRef.current,
+      arrivedAt: arrivedAtRef.current
+    };
+    fields[firstKey]?.focus();
   }
 
   function validate(fields: Array<keyof CheckInInput>): boolean {
@@ -145,7 +151,7 @@ export default function CheckInPage() {
                       className="field w-full"
                       id="firstName"
                       onChange={(event) => update("firstName", event.target.value)}
-                      ref={fieldRefs.firstName}
+                      ref={firstFieldRef}
                       value={input.firstName}
                     />
                   </Field>
@@ -156,7 +162,7 @@ export default function CheckInPage() {
                       className="field w-full"
                       id="lastName"
                       onChange={(event) => update("lastName", event.target.value)}
-                      ref={fieldRefs.lastName}
+                      ref={lastNameRef}
                       value={input.lastName}
                     />
                   </Field>
@@ -168,7 +174,7 @@ export default function CheckInPage() {
                     className="field w-full"
                     id="dob"
                     onChange={(event) => update("dob", event.target.value)}
-                    ref={fieldRefs.dob}
+                    ref={dobRef}
                     type="date"
                     value={input.dob}
                   />
@@ -189,7 +195,7 @@ export default function CheckInPage() {
                     className="field w-full"
                     id="reason"
                     onChange={(event) => update("reason", event.target.value as VisitReason)}
-                    ref={fieldRefs.reason}
+                    ref={reasonRef}
                     value={input.reason}
                   >
                     {reasonOptions.map((reason) => (
@@ -204,7 +210,7 @@ export default function CheckInPage() {
                     className="field w-full"
                     id="language"
                     onChange={(event) => update("language", event.target.value as CheckInInput["language"])}
-                    ref={fieldRefs.language}
+                    ref={languageRef}
                     value={input.language}
                   >
                     <option value="en">English</option>
@@ -218,7 +224,7 @@ export default function CheckInPage() {
                     className="field w-full"
                     id="arrivedAt"
                     onChange={(event) => update("arrivedAt", event.target.value)}
-                    ref={fieldRefs.arrivedAt}
+                    ref={arrivedAtRef}
                     type="datetime-local"
                     value={input.arrivedAt}
                   />
